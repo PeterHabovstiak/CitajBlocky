@@ -13,6 +13,7 @@ from requests.structures import CaseInsensitiveDict
 import os
 import subprocess
 import cv2
+import json
 
 # VZOROVE CISLA BLOCKOV
 # O-4CCD1C78526A43BC8D1C78526AB3BCA7
@@ -20,14 +21,26 @@ import cv2
 
 cumulative = [0, 0, 0, 0, 0, 0, 0, 0]
 nr_blok = [0]
-# definovanie kamery, napr predná alebo zadná
-camera = 1
 
-def read_qr(camera=1):
+# skontroluj či existuje json, ak nie tak ho vyrob
+if os.path.exists("config.json"):
+    with open('config.json', 'r') as f_json:
+        config_j = json.load(f_json)
+else:
+    # vytvor nový config
+    config = {"_cam": "Nastav 0 alebo 1", "cam": "0", "cam_read_qr": "1",
+              "_cam_read_qr": "nastav 1 ak chces zobraziť, 0 ak nie"}
+    with open('config.json', 'w') as f_read_j:
+        json.dump(config, f_read_j)
+    with open('config.json', 'r') as f_json:
+        config_j = json.load(f_json)
+
+
+def read_qr(cam=0):
     """Funkcia ktorá spustí kameru a ak nájde QR tak ho prečíta a zavolá api_fs"""
     try:
         # inicializácia kamery, prvý parameter je číslo kamery
-        cap = cv2.VideoCapture(camera, cv2.CAP_DSHOW)
+        cap = cv2.VideoCapture(int(cam), cv2.CAP_DSHOW)
         # inicializácia cv2 QRCode detector
         detector = cv2.QRCodeDetector()
         # slučka videa s kontrolou či neobsahuje QR
@@ -41,7 +54,7 @@ def read_qr(camera=1):
                 cv2.destroyAllWindows()
                 cap.release()
                 # zavolanie aplikácie
-                ent_nr.delete("1.0", END)
+                ent_nr.delete(0, END)
                 ent_nr.insert(END, data)
                 api_fs()
                 break
@@ -66,24 +79,26 @@ def print_file_txt():
             # os.startfile("blocky.txt", "print")
             subprocess.call(['notepad', '/p', "blocky.txt"])
 
+
 def save_txt():
     """Uloží načítané bločky do txt"""
     top_text = ('SPOLU základ dane, základná sadzba: ' + str(cumulative[0]) + '\n',
-     'SPOLU základ dane, znížená sadzba: ' + str(cumulative[1]) + '\n',
-     'SPOLU s DPH: ' + str(cumulative[2]) + '\n',
-     'SPOLU oslobodená od DPH: ' + str(cumulative[3]) + '\n',
-     'SPOLU DPH: ' + str(cumulative[4]) + '\n',
-     'SPOLU DPH, znížená: ' + str(cumulative[5]) + '\n',
-     'DPH %: ' + str(cumulative[6]) + '\n',
-     'DPH %, znížená: ' + str(cumulative[7]) + '\n')
+                'SPOLU základ dane, znížená sadzba: ' + str(cumulative[1]) + '\n',
+                'SPOLU s DPH: ' + str(cumulative[2]) + '\n',
+                'SPOLU oslobodená od DPH: ' + str(cumulative[3]) + '\n',
+                'SPOLU DPH: ' + str(cumulative[4]) + '\n',
+                'SPOLU DPH, znížená: ' + str(cumulative[5]) + '\n',
+                'DPH %: ' + str(cumulative[6]) + '\n',
+                'DPH %, znížená: ' + str(cumulative[7]) + '\n')
     lines = text_bloky.get('1.0', END)
     with open('../blocky.txt', 'w') as f:
-        for x in top_text:
-            for l in x:
-                f.write(l)
+        for tx in top_text:
+            for lx in tx:
+                f.write(lx)
         for line in lines:
             f.write(line)
     # messagebox.showinfo("Uložené", "Uložené")
+
 
 def delete_all():
     """Vymaže všetky polia a nakumulované premenné"""
@@ -95,14 +110,17 @@ def delete_all():
     ent_vatAmountReduced.delete(0, END)
     ent_vatRateBasic.delete(0, END)
     ent_vatRateReduced.delete(0, END)
+    global cumulative
     cumulative = [0, 0, 0, 0, 0, 0, 0, 0]
     nr_blok[0] = 0
     text_bloky.delete('1.0', END)
     lbl_nr.config(text='0')
 
+
 def api_fs1(_):
     """Pomocná app, pre fungovanie klávesy 'Enter' """
     api_fs()
+
 
 def api_fs():
     """Funkcia pre načítanie bločku z api financnej správy"""
@@ -142,14 +160,14 @@ def api_fs():
         ent_vatRateReduced.delete(0, END)
 
         # pripočítanie predchádzajúceho bločku do list cumulative
-        cumulative[0] += 0 if dict_blocek["receipt"]['taxBaseBasic'] == None else dict_blocek["receipt"]['taxBaseBasic']
-        cumulative[1] += 0 if dict_blocek["receipt"]['taxBaseReduced'] == None else dict_blocek["receipt"]['taxBaseReduced']
-        cumulative[2] += 0 if dict_blocek["receipt"]['totalPrice'] == None else dict_blocek["receipt"]['totalPrice']
-        cumulative[3] += 0 if dict_blocek["receipt"]['freeTaxAmount'] == None else dict_blocek["receipt"]['freeTaxAmount']
-        cumulative[4] += 0 if dict_blocek["receipt"]['vatAmountBasic'] == None else dict_blocek["receipt"]['vatAmountBasic']
-        cumulative[5] += 0 if dict_blocek["receipt"]['vatAmountReduced'] == None else dict_blocek["receipt"]['vatAmountReduced']
-        cumulative[6] =  0 if dict_blocek["receipt"]['vatRateBasic'] == None else dict_blocek["receipt"]['vatRateBasic']
-        cumulative[7] =  0 if dict_blocek["receipt"]['vatRateReduced'] == None else dict_blocek["receipt"]['vatRateReduced']
+        cumulative[0] += dict_blocek["receipt"]['taxBaseBasic'] if dict_blocek["receipt"]['taxBaseBasic'] else 0
+        cumulative[1] += dict_blocek["receipt"]['taxBaseReduced'] if dict_blocek["receipt"]['taxBaseReduced'] else 0
+        cumulative[2] += dict_blocek["receipt"]['totalPrice'] if dict_blocek["receipt"]['totalPrice'] else 0
+        cumulative[3] += dict_blocek["receipt"]['freeTaxAmount'] if dict_blocek["receipt"]['freeTaxAmount'] else 0
+        cumulative[4] += dict_blocek["receipt"]['vatAmountBasic'] if dict_blocek["receipt"]['vatAmountBasic'] else 0
+        cumulative[5] += dict_blocek["receipt"]['vatAmountReduced'] if dict_blocek["receipt"]['vatAmountReduced'] else 0
+        cumulative[6] = dict_blocek["receipt"]['vatRateBasic'] if dict_blocek["receipt"]['vatRateBasic'] else 0
+        cumulative[7] = dict_blocek["receipt"]['vatRateReduced'] if dict_blocek["receipt"]['vatRateReduced'] else 0
 
         # vloženie kumulatívnej hodnoty do polí v hlavnom okne
         ent_taxBaseBasic.insert(END, str(cumulative[0]))
@@ -167,7 +185,7 @@ def api_fs():
         text_bloky.insert(END, 'Názov: ' + str(dict_blocek['receipt']['organization']['name'] + '\n'))
         text_bloky.insert(END, 'IČO: ' + str(dict_blocek["receipt"]['ico']) + '\n')
         text_bloky.insert(END, 'IČ DPH: ' + str(dict_blocek["receipt"]['icDph']) + '\n')
-        text_bloky.insert (END, 'ID bločku: ' + str (ent_nr.get()) + '\n')
+        text_bloky.insert(END, 'ID bločku: ' + str(ent_nr.get()) + '\n')
 
         # generovanie položiek
         for items in dict_blocek["receipt"]['items']:
@@ -175,7 +193,7 @@ def api_fs():
             for prem1 in items:
                 text_bloky.insert(END, str(items[prem1]) + ' ')
                 # print(prem1)
-        text_bloky.insert (END, '\n******* Spolu: ' + str (dict_blocek["receipt"]['totalPrice']) + ' ********')
+        text_bloky.insert(END, '\n******* Spolu: ' + str(dict_blocek["receipt"]['totalPrice']) + ' ********')
         # vymaž pole s id bločku
         ent_nr.delete(0, END)
         # pomocná premenná počet načítaných bločkov
@@ -186,6 +204,7 @@ def api_fs():
         save_txt()
         # počkaj - aby ma FS neblokla
         root.after(1000)
+
 
 # vytvorenie objektu hlavného okna
 root = Tk()
@@ -209,8 +228,8 @@ style = ttk.Style()
 style.theme_use('default')
 
 # pridanie pätičky
-statusbar_rew = Label (root, text="['PH'] vytvoril Peťko H.  :)", bd=1, relief=SUNKEN, anchor=W)
-statusbar_rew.pack (side=BOTTOM, fill=X)
+statusbar_rew = Label(root, text="['PH'] vytvoril Peťko H.  :)", bd=1, relief=SUNKEN, anchor=W)
+statusbar_rew.pack(side=BOTTOM, fill=X)
 
 # definícia vstupných polí
 lbl_entry = Label(root, text='Zadaj číslo z bloku, alebo naskenuj QR')
@@ -231,8 +250,10 @@ btn_delete.grid(column=1, row=0, pady=10, padx=10)
 # btn_save_txt.pack(pady=10, padx=10)
 btn_print_txt = Button(btn_frame, text='Vytlač bločky z TXT', command=print_file_txt)
 btn_print_txt.grid(column=2, row=0, pady=10, padx=10)
-btn_qr_reqd = Button(btn_frame, text='Čítaj QR z kamery', command=lambda: read_qr())
-btn_qr_reqd.grid(column=3, row=0, pady=10, padx=10)
+print(config_j['cam_read_qr'])
+if config_j['cam_read_qr'] == '1':
+    btn_qr_read = Button(btn_frame, text='Čítaj QR z kamery', command=lambda: read_qr(config_j['cam']))
+    btn_qr_read.grid(column=3, row=0, pady=10, padx=10)
 
 main_frame = Frame(root)
 main_frame.pack()
@@ -245,8 +266,8 @@ text_bloky.configure(yscrollcommand=scroll.set)
 text_bloky.tag_configure('bold_italics', font=('Arial', 12, 'bold', 'italic'))
 text_bloky.tag_configure('big', font=('Verdana', 12, 'bold'))
 text_bloky.tag_configure('color',
-                    foreground='#476042',
-                    font=('Tempus Sans ITC', 12, 'bold'))
+                         foreground='#476042',
+                         font=('Tempus Sans ITC', 12, 'bold'))
 
 # frame popis a input polia
 frame_cumulative = LabelFrame(main_frame, text='Kumulatív bločkov')
@@ -287,15 +308,15 @@ ent_vatRateBasic.grid(row=6, column=2, pady=10, padx=10)
 ent_vatRateReduced = Entry(frame_cumulative)
 ent_vatRateReduced.grid(row=7, column=2, pady=10, padx=10)
 # popis prečet napočítaných blokov
-lbl_nr_blok = Label(frame_cumulative,text='Počet', font='helvetica 12 bold')
+lbl_nr_blok = Label(frame_cumulative, text='Počet', font='helvetica 12 bold')
 lbl_nr_blok.grid(row=0, column=0, pady=10)
-lbl_nr_blok1 = Label(frame_cumulative,text='napočitaných', font='helvetica 12 bold')
+lbl_nr_blok1 = Label(frame_cumulative, text='napočitaných', font='helvetica 12 bold')
 lbl_nr_blok1.grid(row=1, column=0, pady=10)
-lbl_nr_blok2 = Label(frame_cumulative,text='bločkov', font='helvetica 12 bold')
+lbl_nr_blok2 = Label(frame_cumulative, text='bločkov', font='helvetica 12 bold')
 lbl_nr_blok2.grid(row=2, column=0, pady=10)
 # štítok počet načítaných blokov
-lbl_nr = Label(frame_cumulative,text='0', font='helvetica 24 bold')
-lbl_nr.grid(row=3, rowspan=3 , column=0, pady=10)
+lbl_nr = Label(frame_cumulative, text='0', font='helvetica 24 bold')
+lbl_nr.grid(row=3, rowspan=3, column=0, pady=10)
 
 # zviazanie vstupného poľa s klávesov "enter"
 ent_nr.bind('<Return>', api_fs1)
