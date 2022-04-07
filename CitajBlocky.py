@@ -78,6 +78,7 @@ def read_qr(cam=0):
 
 
 def print_file_txt():
+    """Funkcia pre tlač načítaných bločkov (zavolá notepad a dá príkaz print)"""
     if os.path.exists("blocky.txt"):
         if messagebox.askokcancel("Tlač", "Vytlačiť bloky?"):
             # os.startfile("blocky.txt", "print")
@@ -211,6 +212,7 @@ def api_fs():
 
 
 def about_prog():
+    """O programe"""
     top = Toplevel()
     top.title("['PH'] - O programe")
     # vycentrovanie okna na stred
