@@ -209,6 +209,35 @@ def api_fs():
         root.after(1000)
 
 
+def about_prog():
+    top = Toplevel()
+    top.title("['PH'] - O programe")
+    # vycentrovanie okna na stred
+    screen_width_top = top.winfo_screenwidth()
+    screen_height_top = top.winfo_screenheight()
+
+    # rozmery top okna
+    app_width_top = 400
+    app_height_top = 400
+    # vycentrovanie okna na stred
+    x = (screen_width_top / 2) - (app_width_top / 2)
+    y = (screen_height_top / 2) - (app_height_top / 2)
+    top.geometry(str(app_width_top) + 'x' + str(app_height_top) + '+' + str(int(x)) + '+' + str(int(y)))
+
+    Label(top, text="Vytvoril Peter Habovštiak", font="helvetica 10 bold").pack(pady=10, padx=10)
+    Label(top, text="mail: oriesok@gmail.com").pack(pady=10, padx=10)
+
+    txt_gnu = Text(top)
+    txt_gnu.pack(pady=10, padx=10)
+
+    statusbar = Label(top, text="['PH'] vytvoril Peťko H.  :)", bd=1, relief=SUNKEN, anchor=W)
+    statusbar.pack(side=BOTTOM, fill=X)
+
+    txt_gnu.insert(END, "<Citaj Bločky> \nCopyright (C) \n<2022> <Peter Habovštiak>\n")
+    txt_gnu.insert(END, "Tento program je ABSOLÚTNE BEZ ZÁRUKY!\n")
+    txt_gnu.insert(END, "Ide o slobodný softvér\na jeho šírenie je za istých podmienok vítané.")
+
+
 # vytvorenie objektu hlavného okna
 root = Tk()
 root.title("['PH'] - Čítaj Bloky SK")
@@ -233,6 +262,20 @@ style.theme_use('default')
 # pridanie pätičky
 statusbar_rew = Label(root, text="['PH'] vytvoril Peťko H.  :)", bd=1, relief=SUNKEN, anchor=W)
 statusbar_rew.pack(side=BOTTOM, fill=X)
+
+# menu pravé tlacitko myši
+m = Menu(root, tearoff=0)
+m.add_command(label="Vymaž napočítané bločky", command=delete_all)
+m.add_command(label="Tlačiť napočítané bločky", command=print_file_txt)
+m.add_command(label="O programe", command=about_prog)
+
+
+def do_popup(event):
+    try:
+        m.tk_popup(event.x_root, event.y_root)
+    finally:
+        m.grab_release()
+
 
 # definícia vstupných polí
 lbl_entry = Label(root, text='Zadaj číslo z bloku, alebo naskenuj QR')
@@ -323,5 +366,5 @@ lbl_nr.grid(row=3, rowspan=3, column=0, pady=10)
 
 # zviazanie vstupného poľa s klávesov "enter"
 ent_nr.bind('<Return>', api_fs1)
-
+root.bind("<Button-3>", do_popup)
 root.mainloop()
