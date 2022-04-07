@@ -4,6 +4,8 @@
 # v1.2 - doplnené automatické ukladanie do txt
 # v1.3 - doplnená tlač txt, focus na entry id bloku
 # v1.4 - doplnený sumár pri tlači a txt vždy na vrchu
+# v1.5 - doplnene skenovanie qr kodu cez webkameru, doplnený config json
+# v1.6 - vyriešený problém so skenerom honeywell "data correct"
 
 from tkinter import *
 from tkinter import ttk
@@ -22,14 +24,15 @@ import json
 cumulative = [0, 0, 0, 0, 0, 0, 0, 0]
 nr_blok = [0]
 
-# skontroluj či existuje config, ak nie tak ho vyrob
+# skontroluj či existuje json, ak nie tak ho vyrob
 if os.path.exists("config.json"):
     with open('config.json', 'r') as f_json:
         config_j = json.load(f_json)
 else:
     # vytvor nový config
     config = {"_cam": "Nastav 0 alebo 1", "cam": "0", "cam_read_qr": "1",
-              "_cam_read_qr": "nastav 1 ak chces zobraziť, 0 ak nie"}
+              "_cam_read_qr": "nastav 1 ak chces zobraziť, 0 ak nie",
+              "path": "", "_path":"zadaj cestu alebo ../(adresar vyššie) "}
     with open('config.json', 'w') as f_read_j:
         json.dump(config, f_read_j)
     with open('config.json', 'r') as f_json:
@@ -77,7 +80,7 @@ def print_file_txt():
     if os.path.exists("blocky.txt"):
         if messagebox.askokcancel("Tlač", "Vytlačiť bloky?"):
             # os.startfile("blocky.txt", "print")
-            subprocess.call(['notepad', '/p', "blocky.txt"])
+            subprocess.call(['notepad', '/p', config_j['path'] + "blocky.txt"])
 
 
 def save_txt():
@@ -91,7 +94,7 @@ def save_txt():
                 'DPH %: ' + str(cumulative[6]) + '\n',
                 'DPH %, znížená: ' + str(cumulative[7]) + '\n')
     lines = text_bloky.get('1.0', END)
-    with open('../blocky.txt', 'w') as f:
+    with open(config_j['path'] + 'blocky.txt', 'w') as f:
         for tx in top_text:
             for lx in tx:
                 f.write(lx)
