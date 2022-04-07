@@ -35,6 +35,7 @@ else:
               "path": "", "_path":"zadaj cestu alebo ../(adresar vyššie) "}
     with open('config.json', 'w') as f_read_j:
         json.dump(config, f_read_j)
+    # načítaj z config
     with open('config.json', 'r') as f_json:
         config_j = json.load(f_json)
 
