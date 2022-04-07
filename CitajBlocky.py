@@ -22,7 +22,7 @@ import json
 cumulative = [0, 0, 0, 0, 0, 0, 0, 0]
 nr_blok = [0]
 
-# skontroluj či existuje json, ak nie tak ho vyrob
+# skontroluj či existuje config, ak nie tak ho vyrob
 if os.path.exists("config.json"):
     with open('config.json', 'r') as f_json:
         config_j = json.load(f_json)
