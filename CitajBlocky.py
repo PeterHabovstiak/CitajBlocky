@@ -1,19 +1,25 @@
 # pip install requests
 # pip install opencv
+# pip install pywin32
+# pip install win32printing
+# pip install temp
 
 # v1.2 - doplnené automatické ukladanie do txt
 # v1.3 - doplnená tlač txt, focus na entry id bloku
 # v1.4 - doplnený sumár pri tlači a txt vždy na vrchu
 # v1.5 - doplnene skenovanie qr kodu cez webkameru, doplnený config json
 # v1.6 - vyriešený problém so skenerom honeywell "data correct"
+# v1.7 - Riešenie problému s tlačou
 
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 import requests
+import win32print
+import win32ui
+import win32con
 from requests.structures import CaseInsensitiveDict
 import os
-import subprocess
 import cv2
 import json
 
@@ -24,7 +30,7 @@ import json
 cumulative = [0, 0, 0, 0, 0, 0, 0, 0]
 nr_blok = [0]
 
-# skontroluj či existuje config, ak nie tak ho vyrob
+# skontroluj či existuje json, ak nie tak ho vyrob
 if os.path.exists("config.json"):
     with open('config.json', 'r') as f_json:
         config_j = json.load(f_json)
@@ -32,10 +38,9 @@ else:
     # vytvor nový config
     config = {"_cam": "Nastav 0 alebo 1", "cam": "0", "cam_read_qr": "1",
               "_cam_read_qr": "nastav 1 ak chces zobraziť, 0 ak nie",
-              "path": "", "_path":"zadaj cestu alebo ../(adresar vyššie) "}
+              "path": "", "_path": "zadaj cestu alebo ../(adresar vyššie) "}
     with open('config.json', 'w') as f_read_j:
         json.dump(config, f_read_j)
-    # načítaj z config
     with open('config.json', 'r') as f_json:
         config_j = json.load(f_json)
 
@@ -78,11 +83,37 @@ def read_qr(cam=0):
 
 
 def print_file_txt():
-    """Funkcia pre tlač načítaných bločkov (zavolá notepad a dá príkaz print)"""
-    if os.path.exists("blocky.txt"):
+    if os.path.exists(config_j['path'] + "blocky.txt"):
         if messagebox.askokcancel("Tlač", "Vytlačiť bloky?"):
             # os.startfile("blocky.txt", "print")
-            subprocess.call(['notepad', '/p', config_j['path'] + "blocky.txt"])
+            # subprocess.call(['notepad', '/p', config_j['path'] + "blocky.txt"])
+            # -------------------------------------------------------------
+            x = 50
+            y = 50
+            printer_name = win32print.GetDefaultPrinter()
+            # if your printer is standard, replace the printer_name:
+            # win32print.GetDefaultPrinter()
+
+            fd = open(config_j['path'] + "blocky.txt", "r", encoding="latin-1")
+            input_string = fd.read()
+            multi_line_string = input_string.splitlines()
+
+            hDC = win32ui.CreateDC()
+            hDC.CreatePrinterDC()
+            hDC.StartDoc("Printing...")
+            hDC.StartPage()
+            fontdata = {'name': 'Arial', 'height': 60, 'italic': True, 'weight': win32con.FW_NORMAL}
+            font = win32ui.CreateFont(fontdata)
+            hDC.SelectObject(font)
+
+            for line in multi_line_string:
+                hDC.TextOut(x, y, line)
+                print(line)
+                y += 70
+            hDC.EndPage()
+            hDC.EndDoc()
+            fd.close()
+            messagebox.showinfo("Subor bol poslaný do tlačiarne", "Súbor bol poslaný do tlačiarne" + printer_name)
 
 
 def save_txt():
@@ -212,7 +243,6 @@ def api_fs():
 
 
 def about_prog():
-    """O programe"""
     top = Toplevel()
     top.title("['PH'] - O programe")
     # vycentrovanie okna na stred
@@ -223,9 +253,9 @@ def about_prog():
     app_width_top = 400
     app_height_top = 400
     # vycentrovanie okna na stred
-    x = (screen_width_top / 2) - (app_width_top / 2)
-    y = (screen_height_top / 2) - (app_height_top / 2)
-    top.geometry(str(app_width_top) + 'x' + str(app_height_top) + '+' + str(int(x)) + '+' + str(int(y)))
+    s_x = (screen_width_top / 2) - (app_width_top / 2)
+    s_y = (screen_height_top / 2) - (app_height_top / 2)
+    top.geometry(str(app_width_top) + 'x' + str(app_height_top) + '+' + str(s_x) + '+' + str(s_y))
 
     Label(top, text="Vytvoril Peter Habovštiak", font="helvetica 10 bold").pack(pady=10, padx=10)
     Label(top, text="mail: oriesok@gmail.com").pack(pady=10, padx=10)
