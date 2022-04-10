@@ -9,19 +9,17 @@
 # v1.4 - doplnený sumár pri tlači a txt vždy na vrchu
 # v1.5 - doplnene skenovanie qr kodu cez webkameru, doplnený config json
 # v1.6 - vyriešený problém so skenerom honeywell "data correct"
-# v1.7 - Riešenie problému s tlačou
+# v1.7 - Riešenie problému s tlačou win32print
 
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 import requests
-import win32print
-import win32ui
-import win32con
 from requests.structures import CaseInsensitiveDict
 import os
 import cv2
 import json
+import print_text
 
 # VZOROVE CISLA BLOCKOV
 # O-4CCD1C78526A43BC8D1C78526AB3BCA7
@@ -36,9 +34,10 @@ if os.path.exists("config.json"):
         config_j = json.load(f_json)
 else:
     # vytvor nový config
-    config = {"_cam": "Nastav 0 alebo 1", "cam": "0", "cam_read_qr": "1",
-              "_cam_read_qr": "nastav 1 ak chces zobraziť, 0 ak nie",
-              "path": "", "_path": "zadaj cestu alebo ../(adresar vyššie) "}
+    config = {"_cam": "císlo kamery: 0 alebo 1", "cam": "0", "cam_read_qr": "1",
+              "_cam_read_qr": "nastav 1 ak chces zobrazit, 0 ak nie",
+              "path": "", "_path": "zadaj cestu alebo ../(adresar vyssie) ",
+              "font_height": "70", "_font_height": "velkost písma pre tlac"}
     with open('config.json', 'w') as f_read_j:
         json.dump(config, f_read_j)
     with open('config.json', 'r') as f_json:
@@ -83,37 +82,10 @@ def read_qr(cam=0):
 
 
 def print_file_txt():
+    """Vytlačenie txt blokov"""
     if os.path.exists(config_j['path'] + "blocky.txt"):
-        if messagebox.askokcancel("Tlač", "Vytlačiť bloky?"):
-            # os.startfile("blocky.txt", "print")
-            # subprocess.call(['notepad', '/p', config_j['path'] + "blocky.txt"])
-            # -------------------------------------------------------------
-            x = 50
-            y = 50
-            printer_name = win32print.GetDefaultPrinter()
-            # if your printer is standard, replace the printer_name:
-            # win32print.GetDefaultPrinter()
-
-            fd = open(config_j['path'] + "blocky.txt", "r", encoding="latin-1")
-            input_string = fd.read()
-            multi_line_string = input_string.splitlines()
-
-            hDC = win32ui.CreateDC()
-            hDC.CreatePrinterDC()
-            hDC.StartDoc("Printing...")
-            hDC.StartPage()
-            fontdata = {'name': 'Arial', 'height': 60, 'italic': True, 'weight': win32con.FW_NORMAL}
-            font = win32ui.CreateFont(fontdata)
-            hDC.SelectObject(font)
-
-            for line in multi_line_string:
-                hDC.TextOut(x, y, line)
-                print(line)
-                y += 70
-            hDC.EndPage()
-            hDC.EndDoc()
-            fd.close()
-            messagebox.showinfo("Subor bol poslaný do tlačiarne", "Súbor bol poslaný do tlačiarne" + printer_name)
+        # zavolanie funkcie pre tlač
+        print_text.print_to_printer(config_j['path'], int(config_j['font_height']))
 
 
 def save_txt():
@@ -166,7 +138,7 @@ def api_fs():
     headers = CaseInsensitiveDict()
     headers["Content-Type"] = "application/json"
 
-    # oprava kodovanie skenera (¨ za -)
+    # oprava kodovanie skenera honeywell (¨ za -)
     data_correct = list(ent_nr.get())
     if ent_nr.get() != "":
         if data_correct[1] == '¨':
