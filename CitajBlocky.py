@@ -27,6 +27,7 @@ import print_text
 
 cumulative = [0, 0, 0, 0, 0, 0, 0, 0]
 nr_blok = [0]
+add_blok = []
 
 # skontroluj či existuje json, ak nie tak ho vyrob
 if os.path.exists("config.json"):
@@ -90,6 +91,7 @@ def print_file_txt():
 
 def save_txt():
     """Uloží načítané bločky do txt"""
+
     top_text = ('SPOLU základ dane, základná sadzba: ' + str(cumulative[0]) + '\n',
                 'SPOLU základ dane, znížená sadzba: ' + str(cumulative[1]) + '\n',
                 'SPOLU s DPH: ' + str(cumulative[2]) + '\n',
@@ -147,71 +149,74 @@ def api_fs():
     s = "".join(data_correct)
     # Vstup id bloček
     data = '{"receiptId":"' + s + '"}'
-
-    # post, v tvare {"receiptId":" císlo bločku"}
-    resp = requests.post(url_api_fs, headers=headers, data=str(data))
-    dict_blocek = resp.json()
-    if dict_blocek['returnValue'] == -1:
-        # ak vráti -1 vyvolaj chybu, bloček neexistuje
-        messagebox.showinfo("Chyba", "Niečo je zle, buď štátne api, alebo zly bloček")
-
+    if s in add_blok:
+        messagebox.showinfo("Bloček sa opakuje!", "Pozor bloček sa opakuje!!")
     else:
-        # print(dict_blocek)
-        # najprv vymaže vstupné polia
-        ent_taxBaseBasic.delete(0, END)
-        ent_taxBaseReduced.delete(0, END)
-        ent_totalPrice.delete(0, END)
-        ent_freeTaxAmount.delete(0, END)
-        ent_vatAmountBasic.delete(0, END)
-        ent_vatAmountReduced.delete(0, END)
-        ent_vatRateBasic.delete(0, END)
-        ent_vatRateReduced.delete(0, END)
+        add_blok.append(s)
+        # post, v tvare {"receiptId":" císlo bločku"}
+        resp = requests.post(url_api_fs, headers=headers, data=str(data))
+        dict_blocek = resp.json()
+        if dict_blocek['returnValue'] == -1:
+            # ak vráti -1 vyvolaj chybu, bloček neexistuje
+            messagebox.showinfo("Chyba", "Niečo je zle, buď štátne api, alebo zly bloček")
 
-        # pripočítanie predchádzajúceho bločku do list cumulative
-        cumulative[0] += dict_blocek["receipt"]['taxBaseBasic'] if dict_blocek["receipt"]['taxBaseBasic'] else 0
-        cumulative[1] += dict_blocek["receipt"]['taxBaseReduced'] if dict_blocek["receipt"]['taxBaseReduced'] else 0
-        cumulative[2] += dict_blocek["receipt"]['totalPrice'] if dict_blocek["receipt"]['totalPrice'] else 0
-        cumulative[3] += dict_blocek["receipt"]['freeTaxAmount'] if dict_blocek["receipt"]['freeTaxAmount'] else 0
-        cumulative[4] += dict_blocek["receipt"]['vatAmountBasic'] if dict_blocek["receipt"]['vatAmountBasic'] else 0
-        cumulative[5] += dict_blocek["receipt"]['vatAmountReduced'] if dict_blocek["receipt"]['vatAmountReduced'] else 0
-        cumulative[6] = dict_blocek["receipt"]['vatRateBasic'] if dict_blocek["receipt"]['vatRateBasic'] else 0
-        cumulative[7] = dict_blocek["receipt"]['vatRateReduced'] if dict_blocek["receipt"]['vatRateReduced'] else 0
+        else:
+            # print(dict_blocek)
+            # najprv vymaže vstupné polia
+            ent_taxBaseBasic.delete(0, END)
+            ent_taxBaseReduced.delete(0, END)
+            ent_totalPrice.delete(0, END)
+            ent_freeTaxAmount.delete(0, END)
+            ent_vatAmountBasic.delete(0, END)
+            ent_vatAmountReduced.delete(0, END)
+            ent_vatRateBasic.delete(0, END)
+            ent_vatRateReduced.delete(0, END)
 
-        # vloženie kumulatívnej hodnoty do polí v hlavnom okne
-        ent_taxBaseBasic.insert(END, str(cumulative[0]))
-        ent_taxBaseReduced.insert(END, str(cumulative[1]))
-        ent_totalPrice.insert(END, str(cumulative[2]))
-        ent_freeTaxAmount.insert(END, str(cumulative[3]))
-        ent_vatAmountBasic.insert(END, str(cumulative[4]))
-        ent_vatAmountReduced.insert(END, str(cumulative[5]))
-        ent_vatRateBasic.insert(END, str(cumulative[6]))
-        ent_vatRateReduced.insert(END, str(cumulative[7]))
+            # pripočítanie predchádzajúceho bločku do list cumulative
+            cumulative[0] += dict_blocek["receipt"]['taxBaseBasic'] if dict_blocek["receipt"]['taxBaseBasic'] else 0
+            cumulative[1] += dict_blocek["receipt"]['taxBaseReduced'] if dict_blocek["receipt"]['taxBaseReduced'] else 0
+            cumulative[2] += dict_blocek["receipt"]['totalPrice'] if dict_blocek["receipt"]['totalPrice'] else 0
+            cumulative[3] += dict_blocek["receipt"]['freeTaxAmount'] if dict_blocek["receipt"]['freeTaxAmount'] else 0
+            cumulative[4] += dict_blocek["receipt"]['vatAmountBasic'] if dict_blocek["receipt"]['vatAmountBasic'] else 0
+            cumulative[5] += dict_blocek["receipt"]['vatAmountReduced'] if dict_blocek["receipt"]['vatAmountReduced'] else 0
+            cumulative[6] = dict_blocek["receipt"]['vatRateBasic'] if dict_blocek["receipt"]['vatRateBasic'] else 0
+            cumulative[7] = dict_blocek["receipt"]['vatRateReduced'] if dict_blocek["receipt"]['vatRateReduced'] else 0
 
-        # Aktualizácia textového poľa z ktorého sa vytvára taktiež TXT
-        text_bloky.insert(END, '\n' + '*******************************************************\n')
-        text_bloky.insert(END, 'Dátum vyhotovenia bločku: ' + str(dict_blocek["receipt"]['issueDate']) + '\n', 'big')
-        text_bloky.insert(END, 'Názov: ' + str(dict_blocek['receipt']['organization']['name'] + '\n'))
-        text_bloky.insert(END, 'IČO: ' + str(dict_blocek["receipt"]['ico']) + '\n')
-        text_bloky.insert(END, 'IČ DPH: ' + str(dict_blocek["receipt"]['icDph']) + '\n')
-        text_bloky.insert(END, 'ID bločku: ' + str(ent_nr.get()) + '\n')
+            # vloženie kumulatívnej hodnoty do polí v hlavnom okne
+            ent_taxBaseBasic.insert(END, str(cumulative[0]))
+            ent_taxBaseReduced.insert(END, str(cumulative[1]))
+            ent_totalPrice.insert(END, str(cumulative[2]))
+            ent_freeTaxAmount.insert(END, str(cumulative[3]))
+            ent_vatAmountBasic.insert(END, str(cumulative[4]))
+            ent_vatAmountReduced.insert(END, str(cumulative[5]))
+            ent_vatRateBasic.insert(END, str(cumulative[6]))
+            ent_vatRateReduced.insert(END, str(cumulative[7]))
 
-        # generovanie položiek
-        for items in dict_blocek["receipt"]['items']:
-            text_bloky.insert(END, '\n')
-            for prem1 in items:
-                text_bloky.insert(END, str(items[prem1]) + ' ')
-                # print(prem1)
-        text_bloky.insert(END, '\n******* Spolu: ' + str(dict_blocek["receipt"]['totalPrice']) + ' ********')
-        # vymaž pole s id bločku
-        ent_nr.delete(0, END)
-        # pomocná premenná počet načítaných bločkov
-        nr_blok[0] += 1
-        # aktualizácia štítku s počtom blokov
-        lbl_nr.config(text=str(nr_blok[0]))
-        # vytvor txt subor
-        save_txt()
-        # počkaj - aby ma FS neblokla
-        root.after(1000)
+            # Aktualizácia textového poľa z ktorého sa vytvára taktiež TXT
+            text_bloky.insert(END, '\n' + '*******************************************************\n')
+            text_bloky.insert(END, 'Dátum vyhotovenia bločku: ' + str(dict_blocek["receipt"]['issueDate']) + '\n', 'big')
+            text_bloky.insert(END, 'Názov: ' + str(dict_blocek['receipt']['organization']['name'] + '\n'))
+            text_bloky.insert(END, 'IČO: ' + str(dict_blocek["receipt"]['ico']) + '\n')
+            text_bloky.insert(END, 'IČ DPH: ' + str(dict_blocek["receipt"]['icDph']) + '\n')
+            text_bloky.insert(END, 'ID bločku: ' + str(ent_nr.get()) + '\n')
+
+            # generovanie položiek
+            for items in dict_blocek["receipt"]['items']:
+                text_bloky.insert(END, '\n')
+                for prem1 in items:
+                    text_bloky.insert(END, str(items[prem1]) + ' ')
+                    # print(prem1)
+            text_bloky.insert(END, '\n******* Spolu: ' + str(dict_blocek["receipt"]['totalPrice']) + ' ********')
+            # vymaž pole s id bločku
+            ent_nr.delete(0, END)
+            # pomocná premenná počet načítaných bločkov
+            nr_blok[0] += 1
+            # aktualizácia štítku s počtom blokov
+            lbl_nr.config(text=str(nr_blok[0]))
+            # vytvor txt subor
+            save_txt()
+            # počkaj - aby ma FS neblokla
+            root.after(1000)
 
 
 def about_prog():
