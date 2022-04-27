@@ -2,7 +2,7 @@ import win32print
 import win32ui
 import win32con
 from tkinter import *
-from tkinter import font  # * doesn't import font or messagebox
+from tkinter import font 
 
 
 def print_to_printer(path=None, font_height=60):
