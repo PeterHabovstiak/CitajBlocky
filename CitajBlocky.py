@@ -9,7 +9,7 @@
 # v1.4 - doplnený sumár pri tlači a txt vždy na vrchu
 # v1.5 - doplnene skenovanie qr kodu cez webkameru, doplnený config json
 # v1.6 - vyriešený problém so skenerom honeywell "data correct"
-# v1.7 - Riešenie problému s tlačou win32print
+# v1.7 - Riešenie problému s tlačou win32print, POZOR pracuje len WIN10 a vyššie
 
 from tkinter import *
 from tkinter import ttk
